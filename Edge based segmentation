@@ -1,0 +1,54 @@
+% Define the directory containing the images
+img_dir = '/MATLAB Drive/archive.zip/melanoma_cancer_dataset/test/benign';
+
+% Get a list of all image files in the directory
+img_files = dir(fullfile(img_dir, '*.jpg'));
+
+% Loop over all image files in the directory
+for i = 1:numel(img_files)
+    
+    % Load the image
+    img = imread(fullfile(img_dir, img_files(i).name));
+    
+    % Convert the image to grayscale
+    gray = rgb2gray(img);
+    
+    % Apply edge detection using Canny method
+    edge_map = edge(gray, 'Canny');
+    
+    % Perform morphological closing to fill small gaps and holes
+    se = strel('disk', 5);
+    binary = imclose(edge_map, se);
+    
+    % Perform morphological opening to remove small objects
+    se = strel('disk', 3);
+    binary = imopen(binary, se);
+    
+    % Save the preprocessed image
+    imwrite(binary, fullfile(img_dir, ['preprocessed_' img_files(i).name]));
+    
+end
+
+% Define the paths to the training and testing data
+train_data_path = '/MATLAB Drive/archive.zip/melanoma_cancer_dataset/test/benign';
+test_data_path = '/MATLAB Drive/archive.zip/melanoma_cancer_dataset/train/benign';
+
+% Load the training data
+train_data = load(train_data_path);
+train_features = train_data.features;
+train_labels = train_data.labels;
+
+% Train the SVM model
+svm_model = fitcsvm(train_features, train_labels, 'KernelFunction', 'linear');
+
+% Load the testing data
+test_data = load(test_data_path);
+test_features = test_data.features;
+test_labels = test_data.labels;
+
+% Predict the labels of the testing data using the trained SVM model
+predicted_labels = predict(svm_model, test_features);
+
+% Calculate the accuracy of the SVM model
+accuracy = sum(predicted_labels == test_labels) / numel(test_labels);
+fprintf('Accuracy: %f\n', accuracy);
